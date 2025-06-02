@@ -26,7 +26,7 @@ def handler(event, context):
     # initialise s3 and DynamoDB
     s3_client = boto3.client('s3')
     dynamodb = boto3.resource('dynamodb')
-    table_name = None # waiting for creating DynamoDB table
+    table_name = "recognized_results"
     
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
@@ -42,7 +42,7 @@ def handler(event, context):
         try:
             dynamodb.Table(table_name).put_item(
                 Item={
-                    'video_id': key.split('/')[-1],
+                    'id': key.split('/')[-1],
                     'labels': labels
                 }
             )
