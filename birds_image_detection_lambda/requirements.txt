@@ -1,0 +1,6 @@
+roboflow 
+ultralytics 
+supervision
+opencv-python
+requests
+boto3
