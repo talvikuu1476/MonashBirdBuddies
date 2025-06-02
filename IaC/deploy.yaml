@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create S3 bucket and Lambda function to upload files.
+
+Resources:
+
+  ### 1. 创建 S3 Bucket
+  BirdMediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: MonashBirdBuddies-S3
+      VersioningConfiguration:
+        Status: Enabled
+
+  ### 2. 创建 IAM Role 给 Lambda 使用
+  UploadLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-s3-upload-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaS3UploadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - arn:aws:s3:::MonashBirdBuddies-S3/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  ### 3. 创建 Lambda 函数（你要先上传 zip 到 S3 才能部署）
+  UploadLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: uploadImageToS3
+      Runtime: python3.9
+      Handler: upload_to_s3_lambda.lambda_handler
+      Role: !GetAtt UploadLambdaRole.Arn
+      Code:
+        S3Bucket: MonashBirdBuddies-S3          # ⬅️ 你上传 zip 的 bucket 名
+        S3Key: upload_files_lambda.zip                 # ⬅️ 你上传的 zip 文件名
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: MonashBirdBuddies-S3
+
+Outputs:
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref UploadLambdaFunction
