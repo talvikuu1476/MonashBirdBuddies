@@ -5,9 +5,9 @@
 # !pip install ultralytics supervision
 
 from ultralytics import YOLO
+from collections import Counter
 import supervision as sv
 import cv2 as cv
-import sys
 import boto3
 import os
 # fix "multiple copies of the OpenMP runtime have been linked into the program" issue
@@ -37,18 +37,67 @@ def handler(event, context):
         s3_client.download_file(bucket, key, local_video_path)
         
         labels = video_prediction(local_video_path, result_filename=key.split('/')[-1], confidence=0.5, model="./model.pt")
+        counts = Counter(labels) # count each label
+        
+        # Create an SNS client
+        sns_client = boto3.client('sns')
+        
+        # Publish a notification to SNS
+        publish_tag_notifications(sns_client,
+                                  "https://{0}.s3.us-east-1.amazonaws.com/{1}".format(bucket,key),
+                                  counts,
+                                  "arn:aws:sns:us-east-1:260365280007:Notification")
 
         # save the labels to DynamoDB
         try:
             dynamodb.Table(table_name).put_item(
                 Item={
                     'id': key.split('/')[-1],
-                    'labels': labels
+                    'bucket': bucket,
+                    'labels': counts
                 }
             )
         except Exception as e:
             print(f"Error saving to DynamoDB: {e}")
-            
+       
+       
+# sns function
+def publish_tag_notifications(sns_client, s3_url: str, tag_counts: dict, topic_arn: str):
+    """
+    Publish SNS messages for each detected bird tag, including count info.
+
+    Args:
+        sns_client: boto3 SNS client
+        s3_url (str): S3 URL of the uploaded image
+        tag_counts (dict): Dictionary like {"crow": 2, "sparrow": 1}
+        topic_arn (str): ARN of the SNS topic
+    """
+    for tag, count in tag_counts.items():
+        message = (
+            f"A new image was uploaded to the system.\n"
+            f"S3 URL: {s3_url}\n"
+            f"Detected bird species: {tag} (count: {count})"
+        )
+
+        try:
+            response = sns_client.publish(
+                TopicArn=topic_arn,
+                Message=message,
+                Subject='[BirdTag] New Bird Image Uploaded',
+                MessageAttributes={
+                    'tag': {
+                        'DataType': 'String',
+                        'StringValue': tag
+                    },
+                    'count': {
+                        'DataType': 'Number',
+                        'StringValue': str(count)
+                    }
+                }
+            )
+            print(f"SNS notification sent for tag '{tag}': {response['MessageId']}")
+        except Exception as e:
+            print(f"[Error] Failed to send SNS for tag '{tag}': {str(e)}")     
 
 # Video Detection
 def video_prediction(video_path, result_filename=None, confidence=0.5, model="./model.pt"):
