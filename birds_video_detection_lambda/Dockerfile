@@ -1,15 +1,22 @@
 FROM public.ecr.aws/lambda/python:3.12
 
-# Copy requirements.txt
-COPY requirements.txt ${LAMBDA_TASK_ROOT}
+# Install dependencies for OpenCV
+RUN dnf install -y \
+    mesa-libGL \
+    mesa-libGLU \
+    glib2 \
+&& dnf clean all
 
-# Install the specified packages
-COPY requirements.txt ${LAMBDA_TASK_ROOT}
+# Set working directory
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy function code
-COPY birds_video_detection.py ${LAMBDA_TASK_ROOT}
-COPY model.pt ${LAMBDA_TASK_ROOT}
+# Copy function code and model
+COPY birds_video_detection.py .
+COPY model.pt .
 
-# Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
+# Set handler
 CMD [ "birds_video_detection.handler" ]
