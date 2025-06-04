@@ -48,6 +48,7 @@ def lambda_handler(event, context):
             }
             
         full_key = key.replace("thumbnail/", "image/", 1)
+        # object url
         full_url = f"https://{bucket_name}.s3.amazonaws.com/{full_key}"
         
         return {
