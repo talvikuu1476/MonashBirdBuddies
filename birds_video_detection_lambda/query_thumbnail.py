@@ -1,5 +1,19 @@
 # Assumption: user only sends 1 thumbnail url for each request
 
+"""
+request body example:
+
+thumbnail_url: s3://team163-bucket/thumbnail/crows_1.jpg
+{
+  "httpMethod": "POST",
+  "body": "{\"thumbnail_url\": \"{thumbnail_url}\"}"
+}
+
+response body example:
+{"statusCode": 200, "body": "{\"full_image_url\": \"https://team163-bucket.s3.amazonaws.com/image/crows_1.jpg\"}"}
+
+"""
+
 import json
 import urllib.parse
 
