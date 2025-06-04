@@ -1,3 +1,5 @@
+# Assumption: user only sends 1 thumbnail url for each request
+
 import json
 import urllib.parse
 
