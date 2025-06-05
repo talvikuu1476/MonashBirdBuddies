@@ -1,4 +1,3 @@
-#创建镜像
 aws ecr create-repository --repository-name audio_detection --region us-east-1 --image-scanning-configuration scanOnPush=true --image-tag-mutability MUTABLE
 
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 260365280007.dkr.ecr.us-east-1.amazonaws.com
