@@ -22,9 +22,9 @@ def lambda_handler(event, context):
         'body': f"Uploaded {file_name} to {BUCKET_NAME}."
     }
 
-///
-传 upload_files_lambda.zip 到某个 bucket：
-cd upload_files_lambda
-zip upload_files_lambda.zip upload_to_s3_lambda.py
-aws s3 cp upload_files_lambda.zip s3://MonashBirdBuddies-S3/
-///
+# ///
+# 传 upload_files_lambda.zip 到某个 bucket：
+# cd upload_files_lambda
+# zip upload_files_lambda.zip upload_to_s3_lambda.py
+# aws s3 cp upload_files_lambda.zip s3://MonashBirdBuddies-S3/
+# ///
