@@ -7,11 +7,9 @@ from urllib.parse import unquote_plus
 import logging
 from birdnetlib import Recording
 from birdnetlib.analyzer import Analyzer
-
 from pathlib import Path
 
 
-# 初始化 AWS 客户端
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ.get("TABLE_NAME", "recognized_results")
@@ -20,39 +18,39 @@ def lambda_handler(event, context):
     save_model()
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
-        key = urllib.parse.unquote_plus(record['s3']['object']['key'])
-
-        
+        key    = urllib.parse.unquote_plus(record['s3']['object']['key'])
         filename = key.split('/')[-1]
         local_path = f"/tmp/{filename}"
 
         try:
-            # 下载音频文件
             s3.download_file(bucket, key, local_path)
-            print(f"Downloaded: {local_path}")
+            print("Downloaded:", local_path)
 
-            # audio = AudioSegment.from_file(local_path)
-            # mono_audio = audio.set_channels(1)
-            # # Overwrite the same file with mono version
-            # ext = Path(local_path).suffix.lstrip(".").lower()
-            # mono_audio.export(local_path, format=ext)
-            # print("successfully exported the mono audio")
-            # 模拟音频识别标签
-            tags = simulate_audio_tags(local_path)
-            tags = Counter(tags)
-            print(tags)
+            raw_tags = simulate_audio_tags(local_path)
+            tags_cap = [t.capitalize() for t in raw_tags]
+            counts   = Counter(tags_cap)
+            print("Counts:", counts)
 
-            # 存入 DynamoDB
+            sns_client = boto3.client('sns')
+            s3_url     = f"https://{bucket}.s3.us-east-1.amazonaws.com/{key}"
+            publish_tag_notifications(
+                sns_client,
+                s3_url,
+                counts,
+                "arn:aws:sns:us-east-1:260365280007:Notification"
+            )
+
             table.put_item(Item={
                 "id": key,
                 "bucket": bucket,
-                "labels": tags
+                "labels": counts
             })
-            print(f"Saved tags: {tags}")
+
         except Exception as e:
-            print(f"Error: {e}")
+            print("Error:", e)
 
     return {"statusCode": 200, "body": "Processed audio file."}
+
 
 def save_model():
     logger = logging.getLogger()
@@ -69,7 +67,7 @@ def save_model():
         logger.info("BirdNET_GLOBAL_6K_V2.4.tflite exsits")
 
 def simulate_audio_tags(audio_path,threshold=0.3):
-    # 这里可以换成实际音频识别逻辑
+
     MODEL_PATH = os.path.join(
         "/tmp/BirdNET_GLOBAL_6K_V2.4.tflite",
     )
@@ -101,3 +99,42 @@ if __name__ == "__main__":
     # mono_audio.export("birds_mono.wav", format="wav")
     species = simulate_audio_tags("birds_mono.wav")
     print(species)
+
+
+# sns function
+def publish_tag_notifications(sns_client, s3_url: str, tag_counts: dict, topic_arn: str):
+    """
+    Publish SNS messages for each detected bird tag, including count info.
+
+    Args:
+        sns_client: boto3 SNS client
+        s3_url (str): S3 URL of the uploaded image
+        tag_counts (dict): Dictionary like {"crow": 2, "sparrow": 1}
+        topic_arn (str): ARN of the SNS topic
+    """
+    for tag, count in tag_counts.items():
+        message = (
+            f"A new image was uploaded to the system.\n"
+            f"S3 URL: {s3_url}\n"
+            f"Detected bird species: {tag} (count: {count})"
+        )
+
+        try:
+            response = sns_client.publish(
+                TopicArn=topic_arn,
+                Message=message,
+                Subject='[BirdTag] New Bird Image Uploaded',
+                MessageAttributes={
+                    'tag': {
+                        'DataType': 'String',
+                        'StringValue': tag
+                    },
+                    'count': {
+                        'DataType': 'Number',
+                        'StringValue': str(count)
+                    }
+                }
+            )
+            print(f"SNS notification sent for tag '{tag}': {response['MessageId']}")
+        except Exception as e:
+            print(f"[Error] Failed to send SNS for tag '{tag}': {str(e)}")
