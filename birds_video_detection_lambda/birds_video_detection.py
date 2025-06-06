@@ -52,7 +52,7 @@ def handler(event, context):
         try:
             dynamodb.Table(table_name).put_item(
                 Item={
-                    'id': key.split('/')[-1],
+                    'id': key,
                     'bucket': bucket,
                     'labels': counts
                 }
