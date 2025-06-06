@@ -5,7 +5,7 @@ import boto3
 import os
 from collections import Counter
 
-def image_prediction(image_path, confidence=0.5, model="./model.pt"):
+def image_prediction(image_path, confidence= 0.35, model="./model.pt"):
     """
     Function to display predictions of a pre-trained YOLO model on a given image.
 
@@ -37,6 +37,11 @@ def image_prediction(image_path, confidence=0.5, model="./model.pt"):
     if detections.class_id is not None:
         detections = detections[(detections.confidence > confidence)]
 
+        # raw_cls_ids = detections.class_id.tolist()
+        # raw_labels  = [class_dict[int(i)] for i in raw_cls_ids]
+        # print("🪶 YOLO raw labels:", raw_labels)  
+        # labels = raw_labels 
+
         # Create labels for the detected objects
         labels = [f"{class_dict[cls_id]}" for cls_id in 
                   detections.class_id]
@@ -62,7 +67,7 @@ def handler(event, context):
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
         
-        # download the video from s3
+        # download the image from s3
         local_image_path = f"/tmp/{key.split('/')[-1]}"
         s3_client.download_file(bucket, key, local_image_path)
         # Generate thumbnail from the downloaded image
@@ -74,7 +79,7 @@ def handler(event, context):
         # Create an SNS client
         sns_client = boto3.client('sns')
         
-        ### Publish a notification to SNS
+        # Publish a notification to SNS
         publish_tag_notifications(sns_client,"https://{0}.s3.us-east-1.amazonaws.com/{1}".format(bucket,key),counts,"arn:aws:sns:us-east-1:260365280007:Notification")
         
         # save the labels to DynamoDB
@@ -115,8 +120,6 @@ def create_thumbnail(image_path: str, width: int = 150, height: int = 150) -> by
     except Exception as e:
         # Optional: log error
         return None
-
-
 
 
 def upload_thumbnail_to_s3(bucket_name: str, original_key: str, thumbnail_bytes: bytes):
@@ -176,3 +179,4 @@ def publish_tag_notifications(sns_client, s3_url: str, tag_counts: dict, topic_a
             print(f"SNS notification sent for tag '{tag}': {response['MessageId']}")
         except Exception as e:
             print(f"[Error] Failed to send SNS for tag '{tag}': {str(e)}")
+
