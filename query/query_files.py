@@ -1,5 +1,8 @@
+# Assumption: users can only send the s3-url of existing files 
+# as a part of the request to query any other files with the same labels.
+
+
 import json
-import os
 import boto3
 import urllib.parse
 
