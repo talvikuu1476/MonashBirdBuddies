@@ -123,7 +123,7 @@ def publish_tag_notifications(sns_client, s3_url: str, tag_counts: dict, topic_a
             response = sns_client.publish(
                 TopicArn=topic_arn,
                 Message=message,
-                Subject='[BirdTag] New Bird Image Uploaded',
+                Subject='[BirdTag] New Bird Audio Uploaded',
                 MessageAttributes={
                     'tag': {
                         'DataType': 'String',
