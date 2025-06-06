@@ -1,6 +1,37 @@
 # Assumption: users can only send the s3-url of existing files 
 # as a part of the request to query any other files with the same labels.
 
+"""
+request body example:
+
+thumbnail_url: s3://team163-bucket/thumbnail/crows_1.jpg
+{
+  "httpMethod": "POST",
+  "body": "{\"thumbnail_url\": \"{thumbnail_url}\"}"
+}
+
+response body example:
+{
+    "statusCode": 200, 
+    "headers":
+    {
+        "Content-Type": "application/json"
+    },
+    "body":
+    "{
+        \"detected_labels\": [\"Pigeon\", \"Crow\"],
+        \"query_by_species_result\": 
+        {
+            \"links\":
+            [
+                \"https://team163-bucket.s3.amazonaws.com/crows.mp4\",
+                \"https://team163-bucket.s3.amazonaws.com/image/crows_1.jpg\"
+            ]
+        }
+    }"
+}
+
+"""
 
 import json
 import boto3
