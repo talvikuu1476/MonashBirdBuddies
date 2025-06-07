@@ -4,10 +4,10 @@
 """
 request body example:
 
-thumbnail_url: s3://team163-bucket/thumbnail/crows_1.jpg
+media_url: s3://team163-bucket/thumbnail/crows_1.jpg
 {
   "httpMethod": "POST",
-  "body": "{\"thumbnail_url\": \"{thumbnail_url}\"}"
+  "body": "{\"media_url\": \"{media_url}\"}"
 }
 
 response body example:
@@ -39,6 +39,7 @@ import urllib.parse
 
 dynamodb = boto3.client("dynamodb")
 lambda_client = boto3.client("lambda")
+bucket = "team163-bucket"
 table_name = "recognized_results"
 query_function = "query_by_species"
 
@@ -99,11 +100,19 @@ def lambda_handler(event, context):
         )
 
         query_result = json.loads(response['Payload'].read())
+        query_result_body = json.loads(query_result.get("body", "{}"))
+        
+        thumbnail_url = None
+        if key.startswith("image/"):
+            filename = key.split("/")[-1]
+            thumbnail_url = f"s3://{bucket}/thumbnail/{filename}"
 
         return response_json(200, {
             "detected_labels": labels,
-            "query_by_species_result": json.loads(query_result.get("body", "{}"))
+            "query_by_species_result": query_result_body,
+            "thumbnail_url": thumbnail_url
         })
+
 
     except Exception as e:
         return response_json(500, {"error": str(e)})
