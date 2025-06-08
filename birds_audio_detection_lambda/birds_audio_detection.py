@@ -51,9 +51,9 @@ def lambda_handler(event, context):
 
     return {"statusCode": 200, "body": "Processed audio file."}
 
-
 def save_model():
     logger = logging.getLogger()
+
     if not os.path.isfile('/tmp/BirdNET_GLOBAL_6K_V2.4_Labels.txt'):
         logger.info("downloading BirdNET_GLOBAL_6K_V2.4_Labels.txt from S3")
         s3.download_file("team163-bucket",'Models/BirdNET_GLOBAL_6K_V2.4_Labels.txt','/tmp/BirdNET_GLOBAL_6K_V2.4_Labels.txt')
@@ -67,7 +67,9 @@ def save_model():
         logger.info("BirdNET_GLOBAL_6K_V2.4.tflite exsits")
 
 def simulate_audio_tags(audio_path,threshold=0.3):
+    # Assume that Analyzer and Recording are already imported
 
+    # Define model and label file paths (assumed to be placed in /tmp)
     MODEL_PATH = os.path.join(
         "/tmp/BirdNET_GLOBAL_6K_V2.4.tflite",
     )
@@ -75,16 +77,20 @@ def simulate_audio_tags(audio_path,threshold=0.3):
         "/tmp/BirdNET_GLOBAL_6K_V2.4_Labels.txt"
     )
 
+    # Initialize the analyzer with model and label paths
     analyzer = Analyzer(
         classifier_model_path=MODEL_PATH,
         classifier_labels_path=LABEL_PATH,
     )
 
+    # Create a Recording object with the analyzer and minimum confidence
     recording = Recording(
         analyzer,
         audio_path,
         min_conf=threshold,
     )
+
+    # Run the analysis to populate detections
     recording.analyze()
     labels = []
     for detection in recording.detections:
