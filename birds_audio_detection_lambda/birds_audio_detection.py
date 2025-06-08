@@ -15,24 +15,40 @@ dynamodb = boto3.resource('dynamodb')
 table_name = os.environ.get("TABLE_NAME", "recognized_results")
 table = dynamodb.Table(table_name)
 def lambda_handler(event, context):
+
+    # Ensure model files exist locally in /tmp before processing
     save_model()
+
+    # Loop through each record triggered by the S3 event
     for record in event['Records']:
+
+        # Extract S3 bucket and object key from event
         bucket = record['s3']['bucket']['name']
         key    = urllib.parse.unquote_plus(record['s3']['object']['key'])
         filename = key.split('/')[-1]
         local_path = f"/tmp/{filename}"
 
         try:
+            # Download the audio file from S3 to local /tmp directory
             s3.download_file(bucket, key, local_path)
             print("Downloaded:", local_path)
 
+            # Analyze the audio file to get raw tags (species labels)
             raw_tags = simulate_audio_tags(local_path)
+
+            # Capitalize each tag for consistent formatting
             tags_cap = [t.capitalize() for t in raw_tags]
+
+            # Count occurrences of each tag
             counts   = Counter(tags_cap)
             print("Counts:", counts)
 
             sns_client = boto3.client('sns')
+
+            # Build public S3 URL for the audio file
             s3_url     = f"https://{bucket}.s3.us-east-1.amazonaws.com/{key}"
+
+            # Publish tag notifications to SNS topic
             publish_tag_notifications(
                 sns_client,
                 s3_url,
@@ -40,6 +56,7 @@ def lambda_handler(event, context):
                 "arn:aws:sns:us-east-1:260365280007:Notification"
             )
 
+            # Store results in DynamoDB with S3 object key as the ID
             table.put_item(Item={
                 "id": key,
                 "bucket": bucket,
@@ -47,11 +64,19 @@ def lambda_handler(event, context):
             })
 
         except Exception as e:
+            # Log any error that occurs during processing
             print("Error:", e)
 
     return {"statusCode": 200, "body": "Processed audio file."}
 
 def save_model():
+
+    """
+
+    Ensures BirdNET model and label files are available in /tmp.
+    Downloads them from S3 if not already present.
+
+    """
     logger = logging.getLogger()
 
     if not os.path.isfile('/tmp/BirdNET_GLOBAL_6K_V2.4_Labels.txt'):
@@ -72,16 +97,16 @@ def simulate_audio_tags(audio_path,threshold=0.3):
     # Define model and label file paths (assumed to be placed in /tmp)
     MODEL_PATH = os.path.join(
         "/tmp/BirdNET_GLOBAL_6K_V2.4.tflite",
-    )
+    )   # MODEL_PATH variable name can be changed, e.g., to model_file
     LABEL_PATH = os.path.join(
         "/tmp/BirdNET_GLOBAL_6K_V2.4_Labels.txt"
-    )
+    )    # LABEL_PATH variable name can be changed, e.g., to label_file
 
     # Initialize the analyzer with model and label paths
     analyzer = Analyzer(
         classifier_model_path=MODEL_PATH,
         classifier_labels_path=LABEL_PATH,
-    )
+    )   # 'analyzer' variable name can be changed, e.g., to model_analyzer
 
     # Create a Recording object with the analyzer and minimum confidence
     recording = Recording(
@@ -96,7 +121,7 @@ def simulate_audio_tags(audio_path,threshold=0.3):
     for detection in recording.detections:
         labels.append(detection["common_name"])
 
-    return labels
+    return labels   # You could also return species_list, detected_labels
 
 if __name__ == "__main__":
     # from pydub import AudioSegment
