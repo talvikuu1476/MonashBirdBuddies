@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monash Birdy Buddies (MBB) Client</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+
+
+    <header class="header">
+      <h1>Monash Birdy Buddies</h1>
+      <p>Monash Birdy Buddies (MBB) is a team of bird enthusiasts at Monash University, made up of researchers, students and staff, who promote bird research and conservation by collecting and analysing photographs, audio and video recordings of birds.</p>
+    </header>
+
+    <!-- 1. upload files -->
+    <section class="card upload-section">
+      <h2 class="card-title">Upload Files</h2>
+      <div id="dropZone" class="drop-zone">
+        <span class="drop-icon">📂</span>
+        <p>Drag and drop files here, or click Select</p>
+        <input type="file" id="fileInput" class="file-input" />
+      </div>
+      <div id="progressContainer" class="progress-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="uploadResult" class="upload-result"></div>
+    </section>
+
+    <!-- 2. query by species -->
+    <section class="card search-section">
+      <h2 class="card-title">Search Files by Species</h2>
+      <label for="speciesInput" class="form-label">
+        Enter the bird species, e.g.:<code>crow,pigeon</code>
+      </label>
+      <div class="input-group">
+        <input type="text" id="speciesInput" class="text-input" placeholder="" />
+        <button id="searchBtn" class="btn">Query</button>
+      </div>
+      <div id="searchResults" class="result-area">
+        <ul id="linksList" class="links-list"></ul>
+      </div>
+    </section>
+
+    <!-- 3. thumbnail -> original -->
+    <section class="card thumb-section">
+      <h2 class="card-title">Find Image Based on Thumbnail S3 URL</h2>
+      <label for="thumbInput" class="form-label">
+        Enter the S3 URL of the thumbnail, e.g.<code>https://team163-bucket.s3.amazonaws.com/thumbnail/crows_1.jpg</code>
+      </label>
+      <div class="input-group">
+        <input type="text" id="thumbInput" class="text-input" placeholder="" />
+        <button id="thumbBtn" class="btn">Query</button>
+      </div>
+      <div id="thumbResult" class="result-area"></div>
+    </section>
+
+    <!-- 4. tag management -->
+    <section class="card label-section">
+      <h2 class="card-title">Tag Management</h2>
+      <label for="urlsInput" class="form-label">Enter the S3 object URLs, one per line:</label>
+      <textarea id="urlsInput" class="text-area"></textarea>
+      <button id="fetchLabelsBtn" class="btn btn-primary">Get label</button>
+      <div id="currentLabelsArea" class="labels-display"></div>
+
+      <label class="form-label">Please select the operation type:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="opType" value="1" checked /> Add Tags</label>
+        <label><input type="radio" name="opType" value="0" /> Reduce Tags</label>
+      </div>
+
+      <label for="tagsInput" class="form-label">Please enter the tag dictionary to operate on (JSON format):</label>
+      <input type="text" id="tagsInput" class="text-input"/>
+      <button id="submitUpdateBtn" class="btn btn-primary">Update Tags</button>
+      <div id="updateResultArea" class="result-area"></div>
+    </section>
+
+    <!-- 5. delete -->
+    <section class="card delete-section">
+      <h2 class="card-title">Delete Files</h2>
+
+      <label for="deleteUrlsInput" class="form-label">
+      Enter the S3 object URLs to delete, one per line:
+      </label>
+      <textarea id="deleteUrlsInput" class="text-area"></textarea>
+      <button id="deleteFilesBtn" class="btn btn-primary">Delete</button>
+      <div id="deleteResultArea" class="result-area"></div>
+    </section>
+
+    <!-- 6. search by files tag  -->
+    <section class="card query-section">
+      <h2 class="card-title">Search Files by Tags</h2>
+      <div id="tagContainer">
+        <div class="form-row tag-row">
+          <input type="text" class="form-control tag-input" placeholder="Tag name (e.g. pigeon)" />
+          <input type="number" class="form-control count-input" placeholder="Min count (e.g. 1)" min="1" />
+          <button type="button" class="btn btn-sm btn-danger remove-tag-btn">×</button>
+        </div>
+      </div>
+
+      <button id="addTagBtn" class="btn btn-sm btn-outline-primary">Add Tag</button>
+      <button id="queryFilesBtn" class="btn btn-secondary">Query</button>
+      <div id="queryResultArea" class="result-area">
+        <ul id="queryList" class="links-list"></ul>
+      </div>
+    </section>
+
+    <!-- 7. query by media url -->
+    <section class="card detect-section">
+      <h2 class="card-title">Query Files by Media URL</h2>
+      <label for="detectInput" class="form-label">
+      Enter the S3 URL of your media
+      </label>
+      <div class="input-group">
+        <input
+          type="text"
+          id="detectInput"
+          class="text-input"
+        />
+        <button id="detectBtn" class="btn">Query</button>
+      </div>
+      <div id="detectResultArea" class="result-area"></div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="upload.js"></script>
+</body>
+</html>
