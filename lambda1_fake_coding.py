@@ -1,18 +1,18 @@
-# 只处理当用户上传了文件时的情况，不处理其他request
-# 需要在request body新增一个user_request_type字段，表示用户请求的类型
+# Only handle the situation when the user uploads a file, and do not handle other requests
+# A new "user_request_type" field needs to be added in the request body to represent the type of the user request
 user_request_type = request_body.get("user_request_type", None)
 file_type = file_type.split('.')[-1]
 file_path = file_path.split('/')[-1]
 
 def lambda_handler(event, context):
-    # 检测用户请求类型
+    # Detect the type of user request
     if user_request_type == "detect":
         detect_result = invoke_lambda_function(file_type)
         
         lambda_client.invoke(FunctionName = "sns") # sns
-        store_detect_result_dynamodb(detect_result) # 存储检测结果到DynamoDB
+        store_detect_result_dynamodb(detect_result) 
         
-        # 给图像创建thumbnail
+        # Create a thumbnail for the image
         if file_type in ["jpg", "jpeg", "png"]:
             lambda_client.invoke(FunctionName = "lambda6")
             
@@ -23,10 +23,10 @@ def lambda_handler(event, context):
     elif user_request_type == "query":
         detect_result = invoke_lambda_function(file_type)
         
-        tags = list(detect_result.keys()) # ["Crow", "Kingfisher"] 提取检测结果中的键作为tags
-        response = query_species(tags) # 唤起lambda10查询物种信息
+        tags = list(detect_result.keys()) # ["Crow", "Kingfisher"] Extract the keys in the detection results as tags
+        response = query_species(tags) # Activate lambda10 to query species information
         
-        # 唤起lambda5来删除用户用户上传的文件
+        # Activate lambda5 to delete the files uploaded by the user
         lambda_client.invoke(
             FunctionName = "lambda5",
             Payload=json.dumps(file_path)
@@ -36,29 +36,29 @@ def lambda_handler(event, context):
         
 
 def invoke_lambda_function(file_type):
-    # 唤起image_detection
+    # image_detection
     if file_type in ["jpg", "jpeg", "png"]:
         response = lambda_client.invoke(
             FunctionName = "lambda2"
         )
         
-    # 唤起video_detection
+    # video_detection
     elif file_type in ["mp4", "avi"]:
         response = lambda_client.invoke(
             FunctionName = "lambda3"
         )
         
-    # 唤起audio_detection
+    # audio_detection
     elif file_type in ["mp3", "wav"]:
         response = lambda_client.invoke(
             FunctionName = "lambda4"
         )
 
-    # 读取结果
+    # Results
     detect_result = json.loads(response['Payload'].read())
-    return detect_result # {"Crow": {"N": "1"}} 这里有检测到的鸟的数量
+    return detect_result # {"Crow": {"N": "1"}} counts of birds
 
-# 存储检测结果到DynamoDB
+# Store in DynamoDB
 def store_detect_result_dynamodb(detect_result):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table('DetectResults')
@@ -74,7 +74,7 @@ def store_detect_result_dynamodb(detect_result):
     return response
 
 def query_species(tags):
-    # 创建lambda10的payload
+    # lambda10 payload
     species_query_event = {
         "httpMethod": "GET",
         "queryStringParameters": None,
@@ -85,7 +85,7 @@ def query_species(tags):
         "body": None
     }
     
-    # 唤起lmabda10
+    # lmabda10
     response = lambda_client.invoke(
         FunctionName=query_function,
         InvocationType='RequestResponse',

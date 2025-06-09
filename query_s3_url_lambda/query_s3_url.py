@@ -2,14 +2,14 @@ import json
 import boto3
 
 def lambda_handler(event, context):
-    # 这里假设前端 POST {"s3_url": "s3://bucket/key"}
+    # Here, it is assumed that the front-end POST {"s3_url": "s3://bucket/key"}
     try:
         body = json.loads(event.get('body', '{}'))
         s3_url = body.get('s3_url', '')
     except Exception:
         return {"statusCode": 400, "body": "Invalid input format."}
 
-    # 解析 s3_url
+    # Parse s3_url
     if not s3_url.startswith("s3://"):
         return {"statusCode": 400, "body": "Invalid s3_url format"}
     _, bucket, *key_parts = s3_url.split('/')
@@ -18,7 +18,7 @@ def lambda_handler(event, context):
 
     s3 = boto3.client('s3')
     try:
-        # 检查文件是否存在并获取元数据
+        # Check if the file exists and obtain the metadata
         resp = s3.head_object(Bucket=bucket, Key=key)
         result = {
             "file_name": key,
