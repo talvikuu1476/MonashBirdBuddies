@@ -1,6 +1,4 @@
-# Step-by-step Guide to Build: Find Images and Videos Based on Tags API (GET/POST via API Gateway)
-
-## ✅ Step 1: Lambda Function Code (query_tags_lambda.py)
+#Lambda Function Code (query_tags_lambda.py)
 
 import json
 import boto3
